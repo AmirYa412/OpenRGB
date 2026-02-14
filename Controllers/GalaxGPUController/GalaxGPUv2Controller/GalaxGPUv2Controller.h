@@ -45,6 +45,16 @@ enum
 
 enum
 {
+    GALAX_V2_FAN_SELECT_REGISTER               = 0x2B, /* Fan Channel Select Register */
+};
+
+enum
+{
+    GALAX_V2_FAN_SELECT_ALL                    = 0x00, /* Apply to all fan channels - must be written before every SaveMode() call */
+};
+
+enum
+{
     GALAX_V2_SAVE_VALUE                        = 0x5A, /* Save Value */
 };
 
