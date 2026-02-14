@@ -186,31 +186,50 @@ void RGBController_GalaxGPUv2::UpdateSingleLED(int /*led*/)
 
 void RGBController_GalaxGPUv2::DeviceUpdateMode()
 {
-    unsigned char mode_value = GALAX_V2_MODE_STATIC_VALUE; // Default to static mode
-    unsigned char sync_value = GALAX_V2_SYNC_OFF; // Default to sync off
+    unsigned char mode_value = GALAX_V2_MODE_STATIC_VALUE;
+    unsigned char sync_value = GALAX_V2_SYNC_OFF;
+    bool use_speed            = false;
+    bool use_sync             = false;
 
     switch(modes[active_mode].value)
     {
-        case 1:
+        case 1: // Breathing
             mode_value = GALAX_V2_MODE_BREATHING_VALUE;
+            use_speed  = true;
             break;
 
-        case 2:
+        case 2: // Rainbow
             mode_value = GALAX_V2_MODE_RAINBOW_VALUE;
+            use_speed  = true;
             break;
 
-        case 3:
-            sync_value = GALAX_V2_SYNC_ON; // Enable sync
+        case 3: // External Sync
+            sync_value = GALAX_V2_SYNC_ON;
+            use_sync   = true;
             break;
 
-        case 4:
-            mode_value = GALAX_V2_MODE_OFF_VALUE; // Off mode
+        case 4: // Off
+            mode_value = GALAX_V2_MODE_OFF_VALUE;
             break;
     }
 
-    controller->SetSync(sync_value);
+    /*---------------------------------------------------------*\
+    | Only write speed registers for modes that use them.      |
+    | Writing speed=0x00 to 0x21/0x22/0x23 during Static mode  |
+    | corrupts the controller state per I2C captures of the    |
+    | native XtremeTuner app.                                  |
+    \*---------------------------------------------------------*/
+    if(use_speed)
+    {
+        controller->SetSpeed(modes[active_mode].speed);
+    }
+
+    if(use_sync)
+    {
+        controller->SetSync(sync_value);
+    }
+
     controller->SetMode(mode_value);
-    controller->SetSpeed(modes[active_mode].speed);
     controller->SetBrightness(modes[active_mode].brightness);
 }
 
