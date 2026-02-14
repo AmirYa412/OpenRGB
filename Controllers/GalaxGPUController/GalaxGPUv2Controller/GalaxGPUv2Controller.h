@@ -50,7 +50,7 @@ enum
 
 enum
 {
-    GALAX_V2_FAN_SELECT_ALL                    = 0x00, /* Apply to all fan channels - must be written before every SaveMode() call */
+    GALAX_V2_FAN_SELECT_ALL                    = 0x00, /* Apply to all fan channels - must be written immediately before brightness register (0x2D) */
 };
 
 enum

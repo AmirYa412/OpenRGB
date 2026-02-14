@@ -100,20 +100,21 @@ void GalaxGPUv2Controller::SetSpeed(unsigned char value)
 
 void GalaxGPUv2Controller::SetBrightness(unsigned char value)
 {
+    /*---------------------------------------------------------*\
+    | Register 0x2B must be written to 0x00 immediately before |
+    | the brightness register (0x2D). I2C captures of the      |
+    | native XtremeTuner app confirm this exact order:         |
+    |   color → mode → 0x2B=0x00 → brightness → save          |
+    | Omitting this, or writing it at save time, causes the    |
+    | settings to only apply to fan 1; fans 2 and 3 remain     |
+    | dark permanently after every restart.                    |
+    \*---------------------------------------------------------*/
+    GalaxGPURegisterWrite(GALAX_V2_FAN_SELECT_REGISTER, GALAX_V2_FAN_SELECT_ALL);
     GalaxGPURegisterWrite(GALAX_V2_BRIGHTNESS_REGISTER, value);
 }
 
 void GalaxGPUv2Controller::SaveMode()
 {
-    /*---------------------------------------------------------*\
-    | Register 0x2B must be written to 0x00 before every save. |
-    | The native XtremeTuner app always does this without       |
-    | exception. It appears to act as a "apply to all fan       |
-    | channels" selector — omitting it causes the save to only  |
-    | apply to fan 1, leaving fans 2 and 3 with no saved state  |
-    | so they boot permanently dark after every restart.        |
-    \*---------------------------------------------------------*/
-    GalaxGPURegisterWrite(GALAX_V2_FAN_SELECT_REGISTER, GALAX_V2_FAN_SELECT_ALL);
     GalaxGPURegisterWrite(GALAX_V2_SAVE_REGISTER, GALAX_V2_SAVE_VALUE);
 }
 
