@@ -216,6 +216,7 @@ void RGBController_GalaxGPUv2::DeviceUpdateMode()
 
 void RGBController_GalaxGPUv2::DeviceSaveMode()
 {
+    DeviceUpdateLEDs();
     DeviceUpdateMode();
     controller->SaveMode();
 }

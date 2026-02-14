@@ -93,9 +93,13 @@ void GalaxGPUv2Controller::SetSync(unsigned char value)
 
 void GalaxGPUv2Controller::SetSpeed(unsigned char value)
 {
-    // We just duplicate the value to both speed registers
+    /*---------------------------------------------------------*\
+    | I2C captures show 3 speed registers written as:          |
+    |   0x21 = speed, 0x22 = 0x01 (fixed), 0x23 = speed       |
+    \*---------------------------------------------------------*/
     GalaxGPURegisterWrite(GALAX_V2_SPEED_REGISTER_A, value);
-    GalaxGPURegisterWrite(GALAX_V2_SPEED_REGISTER_B, value);
+    GalaxGPURegisterWrite(GALAX_V2_SPEED_REGISTER_B, GALAX_V2_SPEED_REGISTER_B_VALUE);
+    GalaxGPURegisterWrite(GALAX_V2_SPEED_REGISTER_C, value);
 }
 
 void GalaxGPUv2Controller::SetBrightness(unsigned char value)

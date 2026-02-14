@@ -22,7 +22,8 @@ enum
     GALAX_V2_GREEN_REGISTER                    = 0x03, /* Green Register */
     GALAX_V2_BLUE_REGISTER                     = 0x04, /* Blue Register */
     GALAX_V2_SPEED_REGISTER_A                  = 0x21, /* Speed Register A */
-    GALAX_V2_SPEED_REGISTER_B                  = 0x22, /* Speed Register B */
+    GALAX_V2_SPEED_REGISTER_B                  = 0x22, /* Speed Register B - fixed at 0x01 per I2C captures */
+    GALAX_V2_SPEED_REGISTER_C                  = 0x23, /* Speed Register C */
     GALAX_V2_SYNC_REGISTER                     = 0x27, /* Sync Register */
     GALAX_V2_BRIGHTNESS_REGISTER               = 0x2D, /* Brightness Register */
     GALAX_V2_MODE_REGISTER                     = 0x30, /* Mode Register */
@@ -41,6 +42,11 @@ enum
 {
     GALAX_V2_SYNC_OFF                          = 0x00, /* Sync Off */
     GALAX_V2_SYNC_ON                           = 0x01, /* Sync On */
+};
+
+enum
+{
+    GALAX_V2_SPEED_REGISTER_B_VALUE            = 0x01, /* Fixed value for speed register B per I2C captures */
 };
 
 enum
