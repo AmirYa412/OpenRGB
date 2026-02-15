@@ -113,8 +113,16 @@ RGBController_GalaxGPUv2::RGBController_GalaxGPUv2(GalaxGPUv2Controller* control
     SetupZones();
 
     active_mode                     = GetDeviceMode();
-    modes[active_mode].brightness   = controller->GetBrightness();
-    modes[active_mode].speed        = controller->GetSpeed();
+
+    unsigned char hw_brightness     = controller->GetBrightness();
+    unsigned char hw_speed          = controller->GetSpeed();
+
+    /*---------------------------------------------------------*\
+    | The controller returns 0xFF for all registers when in an  |
+    | uninitialized state. Clamp to valid ranges.               |
+    \*---------------------------------------------------------*/
+    modes[active_mode].brightness   = (hw_brightness <= 0x03) ? hw_brightness : 0x03;
+    modes[active_mode].speed        = (hw_speed <= 0x09) ? hw_speed : 0x00;
 }
 
 RGBController_GalaxGPUv2::~RGBController_GalaxGPUv2()
