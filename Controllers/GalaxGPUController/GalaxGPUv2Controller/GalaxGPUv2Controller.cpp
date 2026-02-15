@@ -11,6 +11,7 @@
 
 #include <cstring>
 #include "GalaxGPUv2Controller.h"
+#include "LogManager.h"
 
 GalaxGPUv2Controller::GalaxGPUv2Controller(i2c_smbus_interface* bus, galax_gpu_dev_id dev, std::string dev_name)
 {
@@ -85,7 +86,8 @@ void GalaxGPUv2Controller::SetLEDColors(unsigned char red, unsigned char green, 
     | receives all three bytes in one transaction.             |
     \*---------------------------------------------------------*/
     unsigned char color[3] = { red, green, blue };
-    bus->i2c_smbus_write_i2c_block_data(dev, GALAX_V2_RED_REGISTER, 3, color);
+    s32 ret = bus->i2c_smbus_write_i2c_block_data(dev, GALAX_V2_RED_REGISTER, 3, color);
+    LOG_DEBUG("[GalaxV2] SetLEDColors R=0x%02X G=0x%02X B=0x%02X ret=%d", red, green, blue, ret);
 }
 
 void GalaxGPUv2Controller::SetMode(unsigned char value)

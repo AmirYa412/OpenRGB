@@ -10,6 +10,7 @@
 \*---------------------------------------------------------*/
 
 #include "RGBController_GalaxGPUv2.h"
+#include "LogManager.h"
 
 int RGBController_GalaxGPUv2::GetDeviceMode()
 {
@@ -123,6 +124,10 @@ RGBController_GalaxGPUv2::RGBController_GalaxGPUv2(GalaxGPUv2Controller* control
     \*---------------------------------------------------------*/
     modes[active_mode].brightness   = (hw_brightness <= 0x03) ? hw_brightness : 0x03;
     modes[active_mode].speed        = (hw_speed <= 0x09) ? hw_speed : 0x00;
+
+    LOG_DEBUG("[GalaxV2] Init: mode=0x%02X sync=0x%02X brightness=0x%02X(clamped=0x%02X) speed=0x%02X fan_select=0x%02X",
+        controller->GetMode(), controller->GetSync(), hw_brightness, modes[active_mode].brightness,
+        hw_speed, controller->GalaxGPURegisterRead(GALAX_V2_FAN_SELECT_REGISTER));
 }
 
 RGBController_GalaxGPUv2::~RGBController_GalaxGPUv2()
@@ -250,7 +255,17 @@ void RGBController_GalaxGPUv2::DeviceUpdateMode()
 
 void RGBController_GalaxGPUv2::DeviceSaveMode()
 {
+    LOG_DEBUG("[GalaxV2] DeviceSaveMode called, colors.size()=%zu, active_mode=%d", colors.size(), active_mode);
+
+    if(colors.size() > 0)
+    {
+        LOG_DEBUG("[GalaxV2] DeviceSaveMode sending color R=0x%02X G=0x%02X B=0x%02X",
+            RGBGetRValue(colors[0]), RGBGetGValue(colors[0]), RGBGetBValue(colors[0]));
+    }
+
     DeviceUpdateLEDs();
     DeviceUpdateMode();
     controller->SaveMode();
+
+    LOG_DEBUG("[GalaxV2] DeviceSaveMode complete");
 }
