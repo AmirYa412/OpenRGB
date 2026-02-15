@@ -84,6 +84,7 @@ public:
     void          SetSync(unsigned char value);
     void          SetSpeed(unsigned char value);
     void          SetBrightness(unsigned char value);
+    void          SetFanSelectAll();
     void          SaveMode();
 
     unsigned char GalaxGPURegisterRead(unsigned char reg);

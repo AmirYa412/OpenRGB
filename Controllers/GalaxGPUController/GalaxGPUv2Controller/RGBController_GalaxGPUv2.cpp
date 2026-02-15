@@ -229,7 +229,14 @@ void RGBController_GalaxGPUv2::DeviceUpdateMode()
         controller->SetSync(sync_value);
     }
 
+    /*---------------------------------------------------------*\
+    | XtremeTuner write order: color → speed → mode → 0x2B   |
+    | → brightness → save. Register 0x2B=0x00 must come after |
+    | mode and before brightness, exactly as the native app    |
+    | does it.                                                 |
+    \*---------------------------------------------------------*/
     controller->SetMode(mode_value);
+    controller->SetFanSelectAll();
     controller->SetBrightness(modes[active_mode].brightness);
 }
 
