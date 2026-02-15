@@ -158,21 +158,30 @@ RGBController_GalaxGPUv2::RGBController_GalaxGPUv2(GalaxGPUv2Controller* control
 
     if(needs_recovery)
     {
-        LOG_INFO("[GalaxV2] Corrupt EEPROM detected (mode=0x%02X brightness=0x%02X). Running recovery sequence.", hw_mode, hw_brightness);
+        LOG_INFO("[GalaxV2] Corrupt EEPROM detected (mode=0x%02X brightness=0x%02X). Running per-fan recovery.", hw_mode, hw_brightness);
 
         /*-----------------------------------------------------*\
-        | Replicate exact Xtreme Tuner static white sequence:    |
-        |   0x02 size=3: 0xFF 0xFF 0xFF  (white)                |
-        |   0x30 size=1: 0x01            (static)               |
-        |   0x2B size=1: 0x00            (fan select all)       |
-        |   0x2D size=1: 0x03            (max brightness)       |
-        |   0x40 size=1: 0x5A            (save to EEPROM)       |
+        | Per-fan recovery: try writing to each fan channel      |
+        | individually then to all fans. The original single-    |
+        | byte writes may have put individual fan channels into  |
+        | a bad state that "select all" (0x00) can't override.   |
+        |                                                        |
+        | Try fan select values 0x01, 0x02, 0x03 (individual    |
+        | fans) then 0x00 (all fans). For each, write the full  |
+        | static white sequence and save.                        |
         \*-----------------------------------------------------*/
-        controller->SetLEDColors(0xFF, 0xFF, 0xFF);
-        controller->SetMode(GALAX_V2_MODE_STATIC_VALUE);
-        controller->SetFanSelectAll();
-        controller->SetBrightness(0x03);
-        controller->SaveMode();
+        unsigned char fan_channels[] = { 0x01, 0x02, 0x03, 0x00 };
+
+        for(int i = 0; i < 4; i++)
+        {
+            LOG_INFO("[GalaxV2] Recovery: writing fan channel 0x%02X", fan_channels[i]);
+
+            controller->SetLEDColors(0xFF, 0xFF, 0xFF);
+            controller->SetMode(GALAX_V2_MODE_STATIC_VALUE);
+            controller->GalaxGPURegisterWrite(GALAX_V2_FAN_SELECT_REGISTER, fan_channels[i]);
+            controller->SetBrightness(0x03);
+            controller->SaveMode();
+        }
 
         /*-----------------------------------------------------*\
         | Update internal state to match what we just wrote      |
@@ -181,7 +190,7 @@ RGBController_GalaxGPUv2::RGBController_GalaxGPUv2(GalaxGPUv2Controller* control
         active_mode                     = 0;
         modes[active_mode].brightness   = 0x03;
 
-        LOG_INFO("[GalaxV2] Recovery complete — saved static white at max brightness");
+        LOG_INFO("[GalaxV2] Per-fan recovery complete");
     }
 }
 
