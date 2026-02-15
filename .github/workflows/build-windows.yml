@@ -1,0 +1,56 @@
+name: Build Windows 64-bit
+
+on:
+  push:
+    branches: [ "**" ]
+  workflow_dispatch:
+
+jobs:
+  build-windows-64:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Install Qt 6.8.3
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2022_64'
+          cache: true
+
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Install jom
+        run: |
+          choco install jom -y
+          echo "C:\ProgramData\chocolatey\bin" >> $env:GITHUB_PATH
+
+      - name: Build OpenRGB
+        run: |
+          qmake OpenRGB.pro CONFIG-=debug_and_release CONFIG+=release
+          jom
+
+      - name: Deploy Qt DLLs
+        run: |
+          windeployqt --no-patchqt --no-quick-import --no-translations --no-system-d3d-compiler --no-compiler-runtime --no-opengl-sw --no-network .\release\
+
+      - name: Rename output folder
+        run: |
+          move "release" "OpenRGB Windows 64-bit"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenRGB_Windows_64
+          path: "OpenRGB Windows 64-bit"
+          retention-days: 30
