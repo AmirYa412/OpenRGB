@@ -10,7 +10,6 @@
 \*---------------------------------------------------------*/
 
 #include "RGBController_GalaxGPUv2.h"
-#include "LogManager.h"
 
 int RGBController_GalaxGPUv2::GetDeviceMode()
 {
@@ -125,73 +124,22 @@ RGBController_GalaxGPUv2::RGBController_GalaxGPUv2(GalaxGPUv2Controller* control
     modes[active_mode].brightness   = (hw_brightness <= 0x03) ? hw_brightness : 0x03;
     modes[active_mode].speed        = (hw_speed <= 0x09) ? hw_speed : 0x00;
 
-    unsigned char hw_mode           = controller->GetMode();
-    unsigned char hw_fan_select     = controller->GalaxGPURegisterRead(GALAX_V2_FAN_SELECT_REGISTER);
-
-    LOG_DEBUG("[GalaxV2] Init: mode=0x%02X sync=0x%02X brightness=0x%02X(clamped=0x%02X) speed=0x%02X fan_select=0x%02X",
-        hw_mode, controller->GetSync(), hw_brightness, modes[active_mode].brightness,
-        hw_speed, hw_fan_select);
-
     /*---------------------------------------------------------*\
-    | Detect corrupt/uninitialized EEPROM state and recover.    |
-    | A previous OpenRGB build may have saved invalid values    |
-    | (e.g. brightness=0x81, mode=0x80) to the controller's    |
-    | EEPROM, bricking the LED fans. If any register contains   |
-    | an obviously invalid value, force a full recovery by      |
-    | writing the Xtreme Tuner "static white max brightness"    |
-    | sequence and saving it to EEPROM.                         |
+    | Recovery: force sync off, then write a known-good static   |
+    | white sequence and save. This recovers cards where a       |
+    | previous build left sync enabled (0x27=0x01) causing the   |
+    | controller to ignore I2C and follow ARGB cable instead.    |
     \*---------------------------------------------------------*/
-    bool needs_recovery = false;
+    controller->SetSync(GALAX_V2_SYNC_OFF);
+    controller->SetLEDColors(0xFF, 0xFF, 0xFF);
+    controller->SetMode(GALAX_V2_MODE_STATIC_VALUE);
+    controller->SetFanSelectAll();
+    controller->SetBrightness(0x03);
+    controller->SaveMode();
 
-    if(hw_mode != GALAX_V2_MODE_STATIC_VALUE
-    && hw_mode != GALAX_V2_MODE_BREATHING_VALUE
-    && hw_mode != GALAX_V2_MODE_RAINBOW_VALUE
-    && hw_mode != GALAX_V2_MODE_OFF_VALUE)
-    {
-        needs_recovery = true;
-    }
-
-    if(hw_brightness > 0x03)
-    {
-        needs_recovery = true;
-    }
-
-    if(needs_recovery)
-    {
-        LOG_INFO("[GalaxV2] Corrupt EEPROM detected (mode=0x%02X brightness=0x%02X). Running per-fan recovery.", hw_mode, hw_brightness);
-
-        /*-----------------------------------------------------*\
-        | Per-fan recovery: try writing to each fan channel      |
-        | individually then to all fans. The original single-    |
-        | byte writes may have put individual fan channels into  |
-        | a bad state that "select all" (0x00) can't override.   |
-        |                                                        |
-        | Try fan select values 0x01, 0x02, 0x03 (individual    |
-        | fans) then 0x00 (all fans). For each, write the full  |
-        | static white sequence and save.                        |
-        \*-----------------------------------------------------*/
-        unsigned char fan_channels[] = { 0x01, 0x02, 0x03, 0x00 };
-
-        for(int i = 0; i < 4; i++)
-        {
-            LOG_INFO("[GalaxV2] Recovery: writing fan channel 0x%02X", fan_channels[i]);
-
-            controller->SetLEDColors(0xFF, 0xFF, 0xFF);
-            controller->SetMode(GALAX_V2_MODE_STATIC_VALUE);
-            controller->GalaxGPURegisterWrite(GALAX_V2_FAN_SELECT_REGISTER, fan_channels[i]);
-            controller->SetBrightness(0x03);
-            controller->SaveMode();
-        }
-
-        /*-----------------------------------------------------*\
-        | Update internal state to match what we just wrote      |
-        \*-----------------------------------------------------*/
-        colors[0]                       = ToRGBColor(0xFF, 0xFF, 0xFF);
-        active_mode                     = 0;
-        modes[active_mode].brightness   = 0x03;
-
-        LOG_INFO("[GalaxV2] Per-fan recovery complete");
-    }
+    colors[0]                       = ToRGBColor(0xFF, 0xFF, 0xFF);
+    active_mode                     = 0;
+    modes[active_mode].brightness   = 0x03;
 }
 
 RGBController_GalaxGPUv2::~RGBController_GalaxGPUv2()
@@ -301,10 +249,12 @@ void RGBController_GalaxGPUv2::DeviceUpdateMode()
         controller->SetSpeed(modes[active_mode].speed);
     }
 
-    if(use_sync)
-    {
-        controller->SetSync(sync_value);
-    }
+    /*---------------------------------------------------------*\
+    | Always write sync register. Failing to turn sync off when  |
+    | leaving External Sync mode leaves the controller listening  |
+    | to the ARGB cable instead of I2C, bricking fan LEDs.       |
+    \*---------------------------------------------------------*/
+    controller->SetSync(sync_value);
 
     /*---------------------------------------------------------*\
     | XtremeTuner write order: color → speed → mode → 0x2B   |
@@ -319,17 +269,7 @@ void RGBController_GalaxGPUv2::DeviceUpdateMode()
 
 void RGBController_GalaxGPUv2::DeviceSaveMode()
 {
-    LOG_DEBUG("[GalaxV2] DeviceSaveMode called, colors.size()=%zu, active_mode=%d", colors.size(), active_mode);
-
-    if(colors.size() > 0)
-    {
-        LOG_DEBUG("[GalaxV2] DeviceSaveMode sending color R=0x%02X G=0x%02X B=0x%02X",
-            RGBGetRValue(colors[0]), RGBGetGValue(colors[0]), RGBGetBValue(colors[0]));
-    }
-
     DeviceUpdateLEDs();
     DeviceUpdateMode();
     controller->SaveMode();
-
-    LOG_DEBUG("[GalaxV2] DeviceSaveMode complete");
 }
